@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h1>Добро пожаловать, {{ user.username }}</h1>
+    <p>Это защищённая страница MVP.</p>
+  </section>
+{% endblock %}
