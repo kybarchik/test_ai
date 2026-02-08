@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="card card--wide">
+    <header class="card__header card__header--row">
+      <div>
+        <h1>{% block table_title %}{% endblock %}</h1>
+        <p class="card__subtitle">{% block table_subtitle %}{% endblock %}</p>
+      </div>
+      <div class="card__actions">
+        {% block table_actions %}{% endblock %}
+      </div>
+    </header>
+    <div class="card__body">
+      {% block table_body %}{% endblock %}
+    </div>
+  </section>
+{% endblock %}

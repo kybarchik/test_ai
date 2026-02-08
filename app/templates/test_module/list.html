@@ -1,0 +1,27 @@
+{% extends "layouts/crud_base.html" %}
+
+{% block title %}Пример модуля{% endblock %}
+
+{% block crud_nav %}
+  <nav class="side-nav">
+    <a href="#" class="side-nav__item side-nav__item--active">Test Module</a>
+  </nav>
+{% endblock %}
+
+{% block crud_content %}
+  <section class="card card--wide">
+    <header class="card__header">
+      <h1>Пример модуля</h1>
+      <p class="card__subtitle">Шаблон для будущих внутренних модулей.</p>
+    </header>
+    <div class="card__body">
+      <ul>
+        {% for item in items %}
+          <li>{{ item.name }}</li>
+        {% else %}
+          <li>Пока нет данных. Используйте этот шаблон для нового модуля.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+{% endblock %}

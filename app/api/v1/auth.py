@@ -5,18 +5,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db_session
+from app.core.flash import set_flash
 from app.core.security import create_access_token
+from app.core.templating import render_template
 from app.services.auth_service import AuthService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-
-def render_template(request: Request, name: str, context: dict) -> HTMLResponse:
-    """Render a Jinja2 template with the given context."""
-    templates = request.app.state.templates
-    return templates.TemplateResponse(name, {"request": request, **context})
-
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request) -> HTMLResponse:
@@ -55,4 +50,5 @@ async def logout() -> RedirectResponse:
     """Clear the auth cookie and redirect to login."""
     response = RedirectResponse(url="/login", status_code=302)
     response.delete_cookie(key="access_token")
+    set_flash(response, "Вы вышли из системы", "info")
     return response

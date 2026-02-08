@@ -1,0 +1,36 @@
+{% extends "layouts/crud_base.html" %}
+
+{% set is_edit = record is not none %}
+
+{% block title %}{{ "Редактирование" if is_edit else "Новая запись" }}{% endblock %}
+
+{% block crud_nav %}
+  <nav class="side-nav">
+    <a href="/records" class="side-nav__item">Записи</a>
+  </nav>
+{% endblock %}
+
+{% block crud_content %}
+  <section class="card card--wide">
+    <header class="card__header">
+      <h1>{{ "Редактирование записи" if is_edit else "Создание записи" }}</h1>
+      <p class="card__subtitle">Форма для CRUD-модуля.</p>
+    </header>
+    <div class="card__body">
+      <form method="post" action="{{ '/records/' ~ record.id ~ '/edit' if is_edit else '/records/new' }}" class="form">
+        <label>
+          Название
+          <input type="text" name="title" value="{{ record.title if is_edit else '' }}" required />
+        </label>
+        <label>
+          Описание
+          <textarea name="description" rows="4">{{ record.description if is_edit else '' }}</textarea>
+        </label>
+        <div class="form__actions">
+          <a href="/records" class="button button--ghost">Отмена</a>
+          <button type="submit">{{ "Сохранить" if is_edit else "Создать" }}</button>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock %}
