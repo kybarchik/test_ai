@@ -1,0 +1,89 @@
+{% extends "layouts/crud_base.html" %}
+
+{% block title %}Документ #{{ document.id }}{% endblock %}
+
+{% block crud_nav %}
+  <nav class="side-nav">
+    <a href="/documents" class="side-nav__item">Документы</a>
+  </nav>
+{% endblock %}
+
+{% block crud_content %}
+  <section class="card card--wide">
+    <header class="card__header card__header--row">
+      <div>
+        <h1>Документ #{{ document.id }}</h1>
+        <p class="card__subtitle">Статус: {{ "Черновик" if document.status == "DRAFT" else document.status }}</p>
+      </div>
+      <div class="card__actions">
+        <a class="button button--ghost" href="/documents">Назад к списку</a>
+      </div>
+    </header>
+    <div class="card__body">
+      <div class="stack">
+        <div>
+          <h2>Данные документа</h2>
+          <dl class="definition-list">
+            <div>
+              <dt>Название</dt>
+              <dd>{{ document.title }}</dd>
+            </div>
+            <div>
+              <dt>Описание</dt>
+              <dd>{{ document.description or "—" }}</dd>
+            </div>
+            <div>
+              <dt>Создан</dt>
+              <dd>{{ document.created_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+            </div>
+            <div>
+              <dt>Обновлен</dt>
+              <dd>{{ document.updated_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+            </div>
+          </dl>
+        </div>
+        <div>
+          <h2>Редактирование</h2>
+          {% set form_action = "/documents/" ~ document.id %}
+          {% set method_override = "put" %}
+          {% set submit_label = "Сохранить" %}
+          {% include "documents/form.html" %}
+        </div>
+        <div>
+          <h2>Архивирование</h2>
+          <form class="form" method="post" action="/documents/{{ document.id }}" data-method="delete">
+            <div class="form__actions">
+              <button type="submit" class="button button--danger">Архивировать</button>
+            </div>
+          </form>
+          <script>
+            // Функция отправляет запрос на архивирование документа.
+            function bindArchiveForm() {
+              const form = document.currentScript?.previousElementSibling;
+              if (!form || !(form instanceof HTMLFormElement)) {
+                return;
+              }
+              form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const response = await fetch(form.action, {
+                  method: "DELETE",
+                  headers: { "X-Requested-With": "fetch" },
+                });
+                if (!response.ok) {
+                  alert("Не удалось архивировать документ");
+                  return;
+                }
+                const payload = await response.json();
+                if (payload.redirect_url) {
+                  window.location.assign(payload.redirect_url);
+                }
+              });
+            }
+
+            bindArchiveForm();
+          </script>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

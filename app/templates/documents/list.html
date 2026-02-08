@@ -1,0 +1,65 @@
+{% extends "layouts/crud_base.html" %}
+
+{% block title %}Документы{% endblock %}
+
+{% block crud_nav %}
+  <nav class="side-nav">
+    <a href="/documents" class="side-nav__item side-nav__item--active">Документы</a>
+  </nav>
+{% endblock %}
+
+{% block crud_content %}
+  <section class="card card--wide">
+    <header class="card__header card__header--row">
+      <div>
+        <h1>Документы</h1>
+        <p class="card__subtitle">Черновики без согласования.</p>
+      </div>
+    </header>
+    <div class="card__body">
+      <div class="stack">
+        <div>
+          <h2>Создание черновика</h2>
+          {% set form_action = "/documents" %}
+          {% set method_override = none %}
+          {% set submit_label = "Создать" %}
+          {% set document = none %}
+          {% include "documents/form.html" %}
+        </div>
+        <div>
+          <h2>Список документов</h2>
+          {% if documents %}
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Название</th>
+                  <th>Статус</th>
+                  <th>Создано</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for document in documents %}
+                  <tr>
+                    <td>#{{ document.id }}</td>
+                    <td>{{ document.title }}</td>
+                    <td>{{ "Черновик" if document.status == "DRAFT" else document.status }}</td>
+                    <td>{{ document.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                    <td class="table__actions">
+                      <a href="/documents/{{ document.id }}" class="button button--ghost">Открыть</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="empty-state">
+              <p>Пока нет документов. Создайте первый черновик.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

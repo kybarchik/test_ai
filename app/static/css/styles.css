@@ -102,6 +102,11 @@ button {
   cursor: pointer;
 }
 
+.button--danger {
+  background-color: #d92d20;
+  color: #ffffff;
+}
+
 .button--ghost {
   background: transparent;
   border: 1px solid #d0d5dd;
@@ -112,6 +117,29 @@ button {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.definition-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.definition-list dt {
+  font-size: 12px;
+  color: #667085;
+  text-transform: uppercase;
+}
+
+.definition-list dd {
+  margin: 4px 0 0;
+  font-size: 14px;
 }
 
 .table {
