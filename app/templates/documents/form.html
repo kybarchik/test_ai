@@ -1,0 +1,56 @@
+{% set is_edit = document is not none %}
+
+<form
+  class="form"
+  method="post"
+  action="{{ form_action }}"
+  {% if method_override %}data-method="{{ method_override }}"{% endif %}
+>
+  <label>
+    Название
+    <input type="text" name="title" value="{{ document.title if is_edit else '' }}" required />
+  </label>
+  <label>
+    Описание
+    <textarea name="description" rows="6">{{ document.description if is_edit else '' }}</textarea>
+  </label>
+  <div class="form__actions">
+    <button type="submit">{{ submit_label }}</button>
+  </div>
+</form>
+
+{% if method_override %}
+  <script>
+    // Функция отправляет формы с переопределенным HTTP-методом.
+    function bindDocumentForm() {
+      const form = document.currentScript?.previousElementSibling;
+      if (!form || !(form instanceof HTMLFormElement)) {
+        return;
+      }
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const method = form.dataset.method?.toUpperCase();
+        if (!method) {
+          form.submit();
+          return;
+        }
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+          method,
+          body: formData,
+          headers: { "X-Requested-With": "fetch" },
+        });
+        if (!response.ok) {
+          alert("Не удалось сохранить документ");
+          return;
+        }
+        const payload = await response.json();
+        if (payload.redirect_url) {
+          window.location.assign(payload.redirect_url);
+        }
+      });
+    }
+
+    bindDocumentForm();
+  </script>
+{% endif %}
