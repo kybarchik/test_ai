@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <header class="card__header">
+      <h1>Профиль пользователя</h1>
+      <p class="card__subtitle">Основные данные учетной записи.</p>
+    </header>
+    <div class="card__body">
+      <dl class="details">
+        <dt>ID</dt>
+        <dd>{{ user.id }}</dd>
+        <dt>Email</dt>
+        <dd>{{ user.email }}</dd>
+        <dt>Полное имя</dt>
+        <dd>{{ user.full_name }}</dd>
+        <dt>Статус</dt>
+        <dd>{{ "Активен" if user.is_active else "Неактивен" }}</dd>
+        <dt>Создан</dt>
+        <dd>{{ user.created_at }}</dd>
+        <dt>Обновлен</dt>
+        <dd>{{ user.updated_at }}</dd>
+      </dl>
+    </div>
+  </section>
+{% endblock %}

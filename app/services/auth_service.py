@@ -13,14 +13,16 @@ class AuthService(BaseService):
         super().__init__(session)
         self.repository = UserRepository(session)
 
-    async def authenticate(self, username: str, password: str) -> bool:
+    async def authenticate(self, email: str, password: str) -> bool:
         """Validate user credentials."""
-        user = await self.repository.get_by_username(username)
+        user = await self.repository.get_by_email(email)
         if not user:
             return False
-        return verify_password(password, user.hashed_password)
+        if not user.is_active:
+            return False
+        return verify_password(password, user.password_hash)
 
-    async def register(self, username: str, password: str) -> None:
+    async def register(self, email: str, full_name: str, password: str) -> None:
         """Register a new user with a hashed password."""
-        hashed_password = get_password_hash(password)
-        await self.repository.create_user(username=username, hashed_password=hashed_password)
+        password_hash = get_password_hash(password)
+        await self.repository.create_user(email=email, full_name=full_name, password_hash=password_hash)
