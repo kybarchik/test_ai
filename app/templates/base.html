@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}MVP{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <header class="navbar">
+      <div class="navbar__brand">MVP</div>
+      {% if user %}
+        <div class="navbar__actions">
+          <span class="navbar__user">{{ user.username }}</span>
+          <form method="post" action="/logout">
+            <button type="submit" class="button--ghost">Выйти</button>
+          </form>
+        </div>
+      {% endif %}
+    </header>
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>
