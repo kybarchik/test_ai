@@ -1,20 +1,13 @@
-import logging
-
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+from app.repositories.base import BaseRepository
 
 
-class UserRepository:
+class UserRepository(BaseRepository):
     """Repository for user database operations."""
-
-    logger = logging.getLogger(__name__)
-
-    def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository with an async session."""
-        self.session = session
 
     async def get_by_username(self, username: str) -> User | None:
         """Fetch a user by username."""
@@ -30,10 +23,9 @@ class UserRepository:
         user = User(username=username, hashed_password=hashed_password)
         self.session.add(user)
         try:
-            await self.session.commit()
+            await self.session.flush()
             await self.session.refresh(user)
             return user
         except SQLAlchemyError:
-            await self.session.rollback()
             self.logger.exception("Failed to create user", extra={"username": username})
             raise

@@ -2,13 +2,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash, verify_password
 from app.repositories.user_repository import UserRepository
+from app.services.base import BaseService
 
 
-class AuthService:
+class AuthService(BaseService):
     """Service for authentication workflows."""
 
     def __init__(self, session: AsyncSession) -> None:
         """Initialize the service with an async session."""
+        super().__init__(session)
         self.repository = UserRepository(session)
 
     async def authenticate(self, username: str, password: str) -> bool:

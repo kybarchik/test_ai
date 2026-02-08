@@ -1,0 +1,71 @@
+{% extends "layouts/crud_base.html" %}
+
+{% block title %}Записи{% endblock %}
+
+{% block crud_nav %}
+  <nav class="side-nav">
+    <a href="/records" class="side-nav__item side-nav__item--active">Записи</a>
+  </nav>
+{% endblock %}
+
+{% block crud_content %}
+  <section class="card card--wide">
+    <header class="card__header card__header--row">
+      <div>
+        <h1>Записи</h1>
+        <p class="card__subtitle">Базовый CRUD-модуль для внутренней системы.</p>
+      </div>
+      <div class="card__actions">
+        <a class="button" href="/records/new">Создать запись</a>
+      </div>
+    </header>
+    <div class="card__body">
+      {% if records %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Название</th>
+              <th>Описание</th>
+              <th>Создано</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in records %}
+              <tr>
+                <td>#{{ record.id }}</td>
+                <td>{{ record.title }}</td>
+                <td>{{ record.description or "—" }}</td>
+                <td>{{ record.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                <td class="table__actions">
+                  <a href="/records/{{ record.id }}/edit" class="button button--ghost">Редактировать</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          <p>Пока нет записей. Создайте первую запись.</p>
+        </div>
+      {% endif %}
+
+      <div class="pagination">
+        <span>Страница {{ pagination.page }} из {{ pagination.total_pages }}</span>
+        <div class="pagination__actions">
+          {% if pagination.page > 1 %}
+            <a class="button button--ghost" href="/records?page={{ pagination.page - 1 }}&per_page={{ pagination.per_page }}">
+              Назад
+            </a>
+          {% endif %}
+          {% if pagination.page < pagination.total_pages %}
+            <a class="button button--ghost" href="/records?page={{ pagination.page + 1 }}&per_page={{ pagination.per_page }}">
+              Вперед
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

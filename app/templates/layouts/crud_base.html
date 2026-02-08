@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="crud">
+    <aside class="crud__nav">
+      {% block crud_nav %}{% endblock %}
+    </aside>
+    <section class="crud__content">
+      {% block crud_content %}{% endblock %}
+    </section>
+  </div>
+{% endblock %}

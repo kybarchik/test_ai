@@ -3,14 +3,14 @@ from typing import AsyncGenerator
 from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_async_session
+from app.db.session import session_scope
 from app.repositories.user_repository import UserRepository
 from app.core.security import decode_access_token
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """Provide an async database session dependency."""
-    async for session in get_async_session():
+    async with session_scope() as session:
         yield session
 
 
