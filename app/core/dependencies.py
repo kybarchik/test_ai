@@ -25,7 +25,7 @@ async def get_current_user(
     if not subject:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     repository = UserRepository(session)
-    user = await repository.get_by_username(subject)
+    user = await repository.get_by_email(subject)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-    return {"id": user.id, "username": user.username}
+    return {"id": user.id, "email": user.email}
