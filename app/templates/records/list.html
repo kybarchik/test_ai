@@ -1,0 +1,30 @@
+{% extends "crud_base.html" %}
+
+{% block title %}Записи{% endblock %}
+
+{% block header_actions %}
+  <a class="link" href="/records/new">Создать запись</a>
+{% endblock %}
+
+{% block crud_content %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Название</th>
+        <th>Описание</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in records %}
+        <tr>
+          <td>{{ record.id }}</td>
+          <td>{{ record.title }}</td>
+          <td>{{ record.description or "-" }}</td>
+          <td><a class="link" href="/records/{{ record.id }}">Редактировать</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

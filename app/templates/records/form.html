@@ -1,0 +1,25 @@
+{% extends "crud_base.html" %}
+
+{% block title %}
+  {% if record %}Редактирование{% else %}Создание{% endif %}
+{% endblock %}
+
+{% block header_actions %}
+  <a class="link" href="/records">Назад к списку</a>
+{% endblock %}
+
+{% block crud_content %}
+  <form method="post" action="{% if record %}/records/{{ record.id }}{% else %}/records/new{% endif %}">
+    <div class="form-group">
+      <label>Название</label>
+      <input type="text" name="title" value="{{ record.title if record else '' }}" required />
+    </div>
+    <div class="form-group">
+      <label>Описание</label>
+      <textarea name="description" rows="4">{{ record.description if record else '' }}</textarea>
+    </div>
+    <div class="form-actions">
+      <button type="submit">Сохранить</button>
+    </div>
+  </form>
+{% endblock %}

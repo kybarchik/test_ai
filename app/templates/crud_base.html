@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="card">
+    <div class="actions">
+      {% block header_actions %}{% endblock %}
+    </div>
+    {% block crud_content %}{% endblock %}
+  </section>
+{% endblock %}
