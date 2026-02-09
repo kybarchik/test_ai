@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.domain.enums import DocumentStatus
@@ -27,4 +27,10 @@ class Document(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
         nullable=False,
+    )
+
+    metrics: Mapped[list["DocumentMetric"]] = relationship(
+        "DocumentMetric",
+        back_populates="document",
+        cascade="all, delete-orphan",
     )
