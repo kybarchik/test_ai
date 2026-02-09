@@ -5,10 +5,14 @@ def can_transition_document_status(current: DocumentStatus, target: DocumentStat
     """Проверить допустимость перехода статуса документа."""
     transitions = {
         DocumentStatus.DRAFT: {DocumentStatus.APPROVAL},
-        DocumentStatus.APPROVAL: {DocumentStatus.APPROVED, DocumentStatus.REVISION_REQUIRED},
+        DocumentStatus.APPROVAL: {
+            DocumentStatus.APPROVED,
+            DocumentStatus.REVISION_REQUIRED,
+            DocumentStatus.CANCELED,
+        },
         DocumentStatus.REVISION_REQUIRED: {DocumentStatus.APPROVAL},
         DocumentStatus.APPROVED: set(),
-        DocumentStatus.CANCELED: set(),
+        DocumentStatus.CANCELED: {DocumentStatus.DRAFT},
     }
     return target in transitions.get(current, set())
 

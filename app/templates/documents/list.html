@@ -13,7 +13,7 @@
     <header class="card__header card__header--row">
       <div>
         <h1>Документы</h1>
-        <p class="card__subtitle">Черновики без согласования.</p>
+        <p class="card__subtitle">Управляйте своими заявками и задачами согласования.</p>
       </div>
     </header>
     <div class="card__body">
@@ -26,40 +26,109 @@
           {% set document = none %}
           {% include "documents/form.html" %}
         </div>
-        <div>
-          <h2>Список документов</h2>
-          {% if documents %}
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Название</th>
-                  <th>Статус</th>
-                  <th>Создано</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for document in documents %}
-                  <tr>
-                    <td>#{{ document.id }}</td>
-                    <td>{{ document.title }}</td>
-                    <td>{{ "Черновик" if document.status == "DRAFT" else document.status }}</td>
-                    <td>{{ document.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
-                    <td class="table__actions">
-                      <a href="/documents/{{ document.id }}" class="button button--ghost">Открыть</a>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% else %}
-            <div class="empty-state">
-              <p>Пока нет документов. Создайте первый черновик.</p>
+        <div class="tabs" data-docs-tabs>
+          <div class="tabs__header">
+            <button type="button" class="tabs__tab" data-docs-tab data-target="tab-my-requests">
+              Мои заявки
+            </button>
+            <button type="button" class="tabs__tab" data-docs-tab data-target="tab-approvals">
+              На согласовании
+            </button>
+          </div>
+          <div class="tabs__body">
+            <div class="tabs__panel" id="tab-my-requests" data-docs-panel>
+              <h2>Мои заявки</h2>
+              {% if documents %}
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Название</th>
+                      <th>Статус</th>
+                      <th>Создано</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for document in documents %}
+                      <tr>
+                        <td>#{{ document.id }}</td>
+                        <td>{{ document.title }}</td>
+                        <td>{{ status_labels.get(document.status, document.status) }}</td>
+                        <td>{{ document.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                        <td class="table__actions">
+                          <a href="/documents/{{ document.id }}" class="button button--ghost">Открыть</a>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <div class="empty-state">
+                  <p>Пока нет документов. Создайте первый черновик.</p>
+                </div>
+              {% endif %}
             </div>
-          {% endif %}
+            <div class="tabs__panel" id="tab-approvals" data-docs-panel>
+              <h2>На согласовании</h2>
+              {% if pending_documents %}
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Название</th>
+                      <th>Статус</th>
+                      <th>Создано</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for document in pending_documents %}
+                      <tr>
+                        <td>#{{ document.id }}</td>
+                        <td>{{ document.title }}</td>
+                        <td>{{ status_labels.get(document.status, document.status) }}</td>
+                        <td>{{ document.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                        <td class="table__actions">
+                          <a href="/documents/{{ document.id }}" class="button button--ghost">Открыть</a>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <div class="empty-state">
+                  <p>Пока нет документов на согласовании.</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
+  <script>
+    function bindDocsTabs() {
+      const tabsRoot = document.querySelector("[data-docs-tabs]");
+      if (!tabsRoot) {
+        return;
+      }
+      const tabs = Array.from(tabsRoot.querySelectorAll("[data-docs-tab]"));
+      const panels = Array.from(tabsRoot.querySelectorAll("[data-docs-panel]"));
+      if (!tabs.length) {
+        return;
+      }
+      const activate = (tab) => {
+        const targetId = tab.dataset.target;
+        tabs.forEach((item) => item.classList.toggle("tabs__tab--active", item === tab));
+        panels.forEach((panel) => panel.classList.toggle("tabs__panel--active", panel.id === targetId));
+      };
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => activate(tab));
+      });
+      activate(tabs[0]);
+    }
+
+    bindDocsTabs();
+  </script>
 {% endblock %}

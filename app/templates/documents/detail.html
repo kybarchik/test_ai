@@ -20,6 +20,8 @@
       </div>
     </header>
     <div class="card__body">
+      {% set editable_statuses = ["DRAFT", "REVISION_REQUIRED"] %}
+      {% set can_edit_document = document.status in editable_statuses %}
       <div class="stack">
         <div>
           <h2>Данные документа</h2>
@@ -44,7 +46,7 @@
         </div>
         <div>
           <h2>Экономические метрики</h2>
-          {% set can_edit_metrics = document.status != "APPROVED" %}
+          {% set can_edit_metrics = document.status in editable_statuses %}
           {% if metrics %}
             <div class="table">
               <div class="table__row table__row--head">
@@ -126,7 +128,7 @@
               </div>
             </form>
           {% else %}
-            <p>Редактирование метрик недоступно для согласованных документов.</p>
+            <p>Редактирование метрик доступно только в черновике или на доработке.</p>
           {% endif %}
           <script>
             function bindMetricForms() {
@@ -352,6 +354,12 @@
           <h2>Согласование</h2>
           {% if approval %}
             <p class="card__subtitle">Статус согласования: {{ approval_status_labels.get(approval.status, approval.status) }}</p>
+            {% if current_step %}
+              <p class="card__subtitle">
+                Текущий шаг: {{ current_step_index }} из {{ approval_steps | length }}
+                — Пользователь #{{ current_step.approver_id }}
+              </p>
+            {% endif %}
             <div class="table">
               <div class="table__row table__row--head">
                 <div class="table__cell">Согласующий</div>
@@ -367,12 +375,18 @@
                       <form method="post" action="/approvals/{{ approval.id }}/steps/{{ step.id }}/approve">
                         <button type="submit" class="button button--primary">Согласовать</button>
                       </form>
+                      <form method="post" action="/approvals/{{ approval.id }}/steps/{{ step.id }}/revision" class="form form--inline">
+                        <input type="text" name="reason" placeholder="Причина доработки" required>
+                        <button type="submit" class="button button--ghost">На доработку</button>
+                      </form>
                       <form method="post" action="/approvals/{{ approval.id }}/steps/{{ step.id }}/reject" class="form form--inline">
                         <input type="text" name="reason" placeholder="Причина отказа" required>
-                        <button type="submit" class="button button--ghost">Отклонить</button>
+                        <button type="submit" class="button button--danger">Отказать</button>
                       </form>
                     {% elif step.status == "REJECTED" %}
-                      <div class="text-muted">{{ step.rejection_reason or "Причина не указана" }}</div>
+                      <div class="text-muted">
+                        Причина: {{ step.rejection_reason or "не указана" }}
+                      </div>
                     {% endif %}
                   </div>
                 </div>
@@ -420,11 +434,25 @@
         </div>
         <div>
           <h2>Редактирование</h2>
-          {% set form_action = "/documents/" ~ document.id %}
-          {% set method_override = "put" %}
-          {% set submit_label = "Сохранить" %}
-          {% include "documents/form.html" %}
+          {% if can_edit_document %}
+            {% set form_action = "/documents/" ~ document.id %}
+            {% set method_override = "put" %}
+            {% set submit_label = "Сохранить" %}
+            {% include "documents/form.html" %}
+          {% else %}
+            <p>Редактирование доступно только в черновике или на доработке.</p>
+          {% endif %}
         </div>
+        {% if document.status == "CANCELED" %}
+          <div>
+            <h2>Возврат в черновик</h2>
+            <form class="form" method="post" action="/documents/{{ document.id }}/restore">
+              <div class="form__actions">
+                <button type="submit" class="button button--primary">Вернуть в черновик</button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
         <div>
           <h2>Архивирование</h2>
           <form class="form" method="post" action="/documents/{{ document.id }}" data-method="delete">
