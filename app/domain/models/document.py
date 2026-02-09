@@ -34,3 +34,8 @@ class Document(Base):
         back_populates="document",
         cascade="all, delete-orphan",
     )
+    rices: Mapped[list["DocumentRICE"]] = relationship(
+        "DocumentRICE",
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )

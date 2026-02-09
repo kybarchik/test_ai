@@ -163,6 +163,165 @@
           </script>
         </div>
         <div>
+          <h2>RICE-оценка</h2>
+          {% set can_edit_rice = document.status == "APPROVAL" %}
+          {% if rices %}
+            <div class="tabs" data-rice-tabs>
+              <div class="tabs__header">
+                {% for rice in rices %}
+                  <button
+                    type="button"
+                    class="tabs__tab"
+                    data-rice-tab
+                    data-target="rice-{{ rice.id }}"
+                  >
+                    Пользователь #{{ rice.author_id }}
+                  </button>
+                {% endfor %}
+              </div>
+              <div class="tabs__body">
+                {% for rice in rices %}
+                  <div class="tabs__panel" id="rice-{{ rice.id }}" data-rice-panel>
+                    <dl class="definition-list">
+                      <div>
+                        <dt>Охват</dt>
+                        <dd>{{ rice.reach }}</dd>
+                      </div>
+                      <div>
+                        <dt>Влияние</dt>
+                        <dd>{{ rice.impact }}</dd>
+                      </div>
+                      <div>
+                        <dt>Уверенность</dt>
+                        <dd>{{ rice.confidence }}</dd>
+                      </div>
+                      <div>
+                        <dt>Трудозатраты</dt>
+                        <dd>{{ rice.effort }}</dd>
+                      </div>
+                      <div>
+                        <dt>Итоговый балл</dt>
+                        <dd>{{ "%.2f"|format(rice.score) }}</dd>
+                      </div>
+                    </dl>
+                    {% if can_edit_rice and rice.author_id == user.id %}
+                      <form
+                        class="form"
+                        method="post"
+                        action="/documents/{{ document.id }}/rice/{{ rice.id }}"
+                        data-method="put"
+                        data-rice-form
+                      >
+                        <label class="form__label">
+                          Охват
+                          <input type="number" name="reach" step="0.01" value="{{ rice.reach }}" required>
+                        </label>
+                        <label class="form__label">
+                          Влияние
+                          <input type="number" name="impact" step="0.01" value="{{ rice.impact }}" required>
+                        </label>
+                        <label class="form__label">
+                          Уверенность
+                          <input type="number" name="confidence" step="0.01" value="{{ rice.confidence }}" required>
+                        </label>
+                        <label class="form__label">
+                          Трудозатраты
+                          <input type="number" name="effort" step="0.01" value="{{ rice.effort }}" required>
+                        </label>
+                        <div class="form__actions">
+                          <button type="submit" class="button button--ghost">Сохранить изменения</button>
+                        </div>
+                      </form>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <p>RICE-оценки пока не добавлены.</p>
+          {% endif %}
+          {% if can_edit_rice %}
+            <form class="form" method="post" action="/documents/{{ document.id }}/rice" data-rice-form>
+              <label class="form__label">
+                Охват
+                <input type="number" name="reach" step="0.01" required>
+              </label>
+              <label class="form__label">
+                Влияние
+                <input type="number" name="impact" step="0.01" required>
+              </label>
+              <label class="form__label">
+                Уверенность
+                <input type="number" name="confidence" step="0.01" required>
+              </label>
+              <label class="form__label">
+                Трудозатраты
+                <input type="number" name="effort" step="0.01" required>
+              </label>
+              <div class="form__actions">
+                <button type="submit" class="button button--primary">Добавить RICE-оценку</button>
+              </div>
+            </form>
+          {% else %}
+            <p>Редактирование RICE-оценки доступно только на согласовании.</p>
+          {% endif %}
+          <script>
+            function bindRiceTabs() {
+              const tabsRoot = document.querySelector("[data-rice-tabs]");
+              if (!tabsRoot) {
+                return;
+              }
+              const tabs = Array.from(tabsRoot.querySelectorAll("[data-rice-tab]"));
+              const panels = Array.from(tabsRoot.querySelectorAll("[data-rice-panel]"));
+              if (!tabs.length) {
+                return;
+              }
+              const activate = (tab) => {
+                const targetId = tab.dataset.target;
+                tabs.forEach((item) => item.classList.toggle("tabs__tab--active", item === tab));
+                panels.forEach((panel) => panel.classList.toggle("tabs__panel--active", panel.id === targetId));
+              };
+              tabs.forEach((tab) => {
+                tab.addEventListener("click", () => activate(tab));
+              });
+              activate(tabs[0]);
+            }
+
+            function bindRiceForms() {
+              const forms = document.querySelectorAll("[data-rice-form]");
+              forms.forEach((form) => {
+                if (!(form instanceof HTMLFormElement)) {
+                  return;
+                }
+                form.addEventListener("submit", async (event) => {
+                  event.preventDefault();
+                  const method = form.dataset.method?.toUpperCase();
+                  if (!method) {
+                    form.submit();
+                    return;
+                  }
+                  const response = await fetch(form.action, {
+                    method,
+                    body: new FormData(form),
+                    headers: { "X-Requested-With": "fetch" },
+                  });
+                  if (!response.ok) {
+                    alert("Не удалось выполнить действие с RICE-оценкой");
+                    return;
+                  }
+                  const payload = await response.json();
+                  if (payload.redirect_url) {
+                    window.location.assign(payload.redirect_url);
+                  }
+                });
+              });
+            }
+
+            bindRiceTabs();
+            bindRiceForms();
+          </script>
+        </div>
+        <div>
           <h2>Комментарии к документу</h2>
           {% if document_comments %}
             <div class="stack">

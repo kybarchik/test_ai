@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.services.approval_service import ApprovalService
 from app.application.services.comment_service import CommentService
 from app.application.services.document_metric_service import DocumentMetricService
+from app.application.services.document_rice_service import DocumentRICEService
 from app.application.services.document_service import DocumentService
 from app.core.dependencies import get_current_user, get_db_session
 from app.core.flash import set_flash
@@ -60,6 +61,7 @@ async def get_document(
     approval_service = ApprovalService(session)
     comment_service = CommentService(session)
     metric_service = DocumentMetricService(session)
+    rice_service = DocumentRICEService(session)
     document = await service.get_document(document_id)
     if not document:
         return render_template(
@@ -71,6 +73,7 @@ async def get_document(
     document_comments = await comment_service.list_for_document(document.id)
     approval_comments = await comment_service.list_for_approval(approval.id) if approval else []
     metrics = await metric_service.list_metrics_for_document(document.id)
+    rices = await rice_service.list_rice_for_document(document.id)
     status_labels = {
         DocumentStatus.DRAFT.value: "Черновик",
         DocumentStatus.APPROVAL.value: "Согласование",
@@ -99,6 +102,7 @@ async def get_document(
             "document_comments": document_comments,
             "approval_comments": approval_comments,
             "metrics": metrics,
+            "rices": rices,
             "status_labels": status_labels,
             "approval_status_labels": approval_status_labels,
             "step_status_labels": step_status_labels,
@@ -202,6 +206,32 @@ async def add_document_metric(
     return response
 
 
+@router.post("/{document_id}/rice")
+async def add_document_rice(
+    request: Request,
+    document_id: int,
+    reach: float = Form(...),
+    impact: float = Form(...),
+    confidence: float = Form(...),
+    effort: float = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> RedirectResponse:
+    """Add a RICE score to a document."""
+    service = DocumentRICEService(session)
+    rice = await service.add_rice(
+        document_id=document_id,
+        author_id=user["id"],
+        data={"reach": reach, "impact": impact, "confidence": confidence, "effort": effort},
+    )
+    response = RedirectResponse(url=f"/documents/{document_id}", status_code=302)
+    if not rice:
+        set_flash(response, "Не удалось добавить RICE-оценку", "error")
+        return response
+    set_flash(response, "RICE-оценка добавлена", "success")
+    return response
+
+
 @router.put("/{document_id}/metrics/{metric_id}")
 async def update_document_metric(
     request: Request,
@@ -227,6 +257,30 @@ async def update_document_metric(
     return JSONResponse({"redirect_url": f"/documents/{document_id}"})
 
 
+@router.put("/{document_id}/rice/{rice_id}")
+async def update_document_rice(
+    request: Request,
+    document_id: int,
+    rice_id: int,
+    reach: float = Form(...),
+    impact: float = Form(...),
+    confidence: float = Form(...),
+    effort: float = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> JSONResponse:
+    """Update a RICE score in a document."""
+    service = DocumentRICEService(session)
+    rice = await service.update_rice(
+        rice_id=rice_id,
+        author_id=user["id"],
+        data={"reach": reach, "impact": impact, "confidence": confidence, "effort": effort},
+    )
+    if not rice or rice.document_id != document_id:
+        return JSONResponse({"detail": "Не удалось обновить RICE-оценку"}, status_code=400)
+    return JSONResponse({"redirect_url": f"/documents/{document_id}"})
+
+
 @router.delete("/{document_id}/metrics/{metric_id}")
 async def delete_document_metric(
     request: Request,
@@ -241,3 +295,28 @@ async def delete_document_metric(
     if not removed:
         return JSONResponse({"detail": "Не удалось удалить метрику"}, status_code=400)
     return JSONResponse({"redirect_url": f"/documents/{document_id}"})
+
+
+@router.get("/{document_id}/rice")
+async def list_document_rice(
+    document_id: int,
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> JSONResponse:
+    """Return RICE scores for a document."""
+    service = DocumentRICEService(session)
+    rices = await service.list_rice_for_document(document_id)
+    payload = [
+        {
+            "id": rice.id,
+            "document_id": rice.document_id,
+            "author_id": rice.author_id,
+            "reach": rice.reach,
+            "impact": rice.impact,
+            "confidence": rice.confidence,
+            "effort": rice.effort,
+            "score": rice.score,
+        }
+        for rice in rices
+    ]
+    return JSONResponse(payload)
