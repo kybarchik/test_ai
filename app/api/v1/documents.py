@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.services.approval_service import ApprovalService
 from app.application.services.document_service import DocumentService
 from app.core.dependencies import get_current_user, get_db_session
 from app.core.flash import set_flash
 from app.core.templating import render_template
+from app.domain.enums import ApprovalStatus, ApprovalStepStatus, DocumentStatus
 from app.schemas.document import DocumentCreate, DocumentUpdate
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -53,6 +55,7 @@ async def get_document(
 ) -> HTMLResponse:
     """Render a document detail page."""
     service = DocumentService(session)
+    approval_service = ApprovalService(session)
     document = await service.get_document(document_id)
     if not document:
         return render_template(
@@ -60,11 +63,57 @@ async def get_document(
             "error.html",
             {"user": user, "status_code": 404, "detail": "Документ не найден"},
         )
+    approval, steps = await approval_service.get_approval_with_steps(document.id)
+    status_labels = {
+        DocumentStatus.DRAFT.value: "Черновик",
+        DocumentStatus.APPROVAL.value: "Согласование",
+        DocumentStatus.REVISION_REQUIRED.value: "Требует доработки",
+        DocumentStatus.CANCELED.value: "Отменено",
+        DocumentStatus.APPROVED.value: "Согласовано",
+    }
+    approval_status_labels = {
+        ApprovalStatus.PENDING.value: "Ожидает",
+        ApprovalStatus.APPROVED.value: "Согласовано",
+        ApprovalStatus.REJECTED.value: "Отклонено",
+    }
+    step_status_labels = {
+        ApprovalStepStatus.PENDING.value: "Ожидает",
+        ApprovalStepStatus.APPROVED.value: "Согласовано",
+        ApprovalStepStatus.REJECTED.value: "Отклонено",
+    }
     return render_template(
         request,
         "documents/detail.html",
-        {"user": user, "document": document},
+        {
+            "user": user,
+            "document": document,
+            "approval": approval,
+            "approval_steps": steps,
+            "status_labels": status_labels,
+            "approval_status_labels": approval_status_labels,
+            "step_status_labels": step_status_labels,
+        },
     )
+
+
+@router.post("/{document_id}/submit")
+async def submit_document(
+    request: Request,
+    document_id: int,
+    approver_ids: str = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> RedirectResponse:
+    """Submit a document for approval."""
+    approvers = [int(item.strip()) for item in approver_ids.split(",") if item.strip()]
+    service = ApprovalService(session)
+    approval = await service.create_approval_flow(document_id, approvers)
+    response = RedirectResponse(url=f"/documents/{document_id}", status_code=302)
+    if not approval:
+        set_flash(response, "Не удалось отправить на согласование", "error")
+        return response
+    set_flash(response, "Документ отправлен на согласование", "success")
+    return response
 
 
 @router.put("/{document_id}")
