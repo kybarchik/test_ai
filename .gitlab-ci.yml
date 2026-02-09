@@ -1,0 +1,43 @@
+stages:
+  - build
+  - migrate
+  - start
+
+variables:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_CACHE_DIR: "1"
+
+build:
+  stage: build
+  image: python:3.11-slim
+  script:
+    - pip install -r requirements.txt
+    - pip install aiosqlite
+    - python -m compileall app
+
+migrate:
+  stage: migrate
+  image: python:3.11-slim
+  variables:
+    DATABASE_URL: "sqlite+aiosqlite:////tmp/app.db"
+    SECRET_KEY: "ci-secret"
+    ENVIRONMENT: "ci"
+  script:
+    - pip install -r requirements.txt
+    - pip install aiosqlite
+    - alembic upgrade head
+
+start:
+  stage: start
+  image: python:3.11-slim
+  variables:
+    DATABASE_URL: "sqlite+aiosqlite:////tmp/app.db"
+    SECRET_KEY: "ci-secret"
+    ENVIRONMENT: "ci"
+  script:
+    - pip install -r requirements.txt
+    - pip install aiosqlite
+    - uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+    - UVICORN_PID=$!
+    - sleep 5
+    - kill $UVICORN_PID
