@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.approval_service import ApprovalService
+from app.application.services.comment_service import CommentService
 from app.application.services.document_service import DocumentService
 from app.core.dependencies import get_current_user, get_db_session
 from app.core.flash import set_flash
@@ -56,6 +57,7 @@ async def get_document(
     """Render a document detail page."""
     service = DocumentService(session)
     approval_service = ApprovalService(session)
+    comment_service = CommentService(session)
     document = await service.get_document(document_id)
     if not document:
         return render_template(
@@ -64,6 +66,8 @@ async def get_document(
             {"user": user, "status_code": 404, "detail": "Документ не найден"},
         )
     approval, steps = await approval_service.get_approval_with_steps(document.id)
+    document_comments = await comment_service.list_for_document(document.id)
+    approval_comments = await comment_service.list_for_approval(approval.id) if approval else []
     status_labels = {
         DocumentStatus.DRAFT.value: "Черновик",
         DocumentStatus.APPROVAL.value: "Согласование",
@@ -89,6 +93,8 @@ async def get_document(
             "document": document,
             "approval": approval,
             "approval_steps": steps,
+            "document_comments": document_comments,
+            "approval_comments": approval_comments,
             "status_labels": status_labels,
             "approval_status_labels": approval_status_labels,
             "step_status_labels": step_status_labels,
@@ -147,3 +153,25 @@ async def archive_document(
     if not document:
         return JSONResponse({"detail": "Документ не найден"}, status_code=404)
     return JSONResponse({"redirect_url": "/documents"})
+
+
+@router.get("/{document_id}/comments")
+async def list_document_comments(
+    document_id: int,
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> JSONResponse:
+    """Return comments for a document."""
+    service = CommentService(session)
+    comments = await service.list_for_document(document_id)
+    payload = [
+        {
+            "id": comment.id,
+            "content": comment.content,
+            "document_id": comment.document_id,
+            "approval_id": comment.approval_id,
+            "created_at": comment.created_at.isoformat(),
+        }
+        for comment in comments
+    ]
+    return JSONResponse(payload)
