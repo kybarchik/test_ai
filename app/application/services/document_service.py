@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.models.document import DOCUMENT_STATUS_DRAFT
+from app.domain.enums import DocumentStatus
 from app.infrastructure.repositories.document_repository import DocumentRepository
 from app.schemas.document import DocumentCreate, DocumentUpdate
 from app.services.base import BaseService
@@ -21,7 +21,7 @@ class DocumentService(BaseService):
                 title=payload.title,
                 description=payload.description,
             )
-            document.status = DOCUMENT_STATUS_DRAFT
+            document.status = DocumentStatus.DRAFT.value
             return document
 
     async def update_draft(self, document_id: int, payload: DocumentUpdate):
@@ -32,7 +32,7 @@ class DocumentService(BaseService):
                 return None
             if document.is_archived:
                 return None
-            if document.status != DOCUMENT_STATUS_DRAFT:
+            if document.status != DocumentStatus.DRAFT.value:
                 return None
             return await self.repository.update_document(
                 document=document,

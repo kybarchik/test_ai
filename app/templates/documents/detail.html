@@ -13,7 +13,7 @@
     <header class="card__header card__header--row">
       <div>
         <h1>Документ #{{ document.id }}</h1>
-        <p class="card__subtitle">Статус: {{ "Черновик" if document.status == "DRAFT" else document.status }}</p>
+        <p class="card__subtitle">Статус: {{ status_labels.get(document.status, document.status) }}</p>
       </div>
       <div class="card__actions">
         <a class="button button--ghost" href="/documents">Назад к списку</a>
@@ -41,6 +41,51 @@
               <dd>{{ document.updated_at.strftime("%d.%m.%Y %H:%M") }}</dd>
             </div>
           </dl>
+        </div>
+        <div>
+          <h2>Согласование</h2>
+          {% if approval %}
+            <p class="card__subtitle">Статус согласования: {{ approval_status_labels.get(approval.status, approval.status) }}</p>
+            <div class="table">
+              <div class="table__row table__row--head">
+                <div class="table__cell">Согласующий</div>
+                <div class="table__cell">Статус</div>
+                <div class="table__cell">Действия</div>
+              </div>
+              {% for step in approval_steps %}
+                <div class="table__row">
+                  <div class="table__cell">Пользователь #{{ step.approver_id }}</div>
+                  <div class="table__cell">{{ step_status_labels.get(step.status, step.status) }}</div>
+                  <div class="table__cell">
+                    {% if step.approver_id == user.id and step.status == "PENDING" %}
+                      <form method="post" action="/approvals/{{ approval.id }}/steps/{{ step.id }}/approve">
+                        <button type="submit" class="button button--primary">Согласовать</button>
+                      </form>
+                      <form method="post" action="/approvals/{{ approval.id }}/steps/{{ step.id }}/reject" class="form form--inline">
+                        <input type="text" name="reason" placeholder="Причина отказа" required>
+                        <button type="submit" class="button button--ghost">Отклонить</button>
+                      </form>
+                    {% elif step.status == "REJECTED" %}
+                      <div class="text-muted">{{ step.rejection_reason or "Причина не указана" }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p>Согласование не начато.</p>
+          {% endif %}
+          {% if document.status in ["DRAFT", "REVISION_REQUIRED"] %}
+            <form class="form" method="post" action="/documents/{{ document.id }}/submit">
+              <label class="form__label">
+                Согласующие (ID через запятую)
+                <input type="text" name="approver_ids" required>
+              </label>
+              <div class="form__actions">
+                <button type="submit" class="button button--primary">Отправить на согласование</button>
+              </div>
+            </form>
+          {% endif %}
         </div>
         <div>
           <h2>Редактирование</h2>
