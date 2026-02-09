@@ -43,6 +43,33 @@
           </dl>
         </div>
         <div>
+          <h2>Комментарии к документу</h2>
+          {% if document_comments %}
+            <div class="stack">
+              {% for comment in document_comments %}
+                <div class="card">
+                  <div class="card__body">
+                    <div>{{ comment.content }}</div>
+                    <div class="text-muted">{{ comment.created_at.strftime("%d.%m.%Y %H:%M") }}</div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p>Комментариев пока нет.</p>
+          {% endif %}
+          <form class="form" method="post" action="/comments">
+            <input type="hidden" name="document_id" value="{{ document.id }}">
+            <label class="form__label">
+              Добавить комментарий
+              <textarea name="content" rows="3" required></textarea>
+            </label>
+            <div class="form__actions">
+              <button type="submit" class="button button--primary">Отправить</button>
+            </div>
+          </form>
+        </div>
+        <div>
           <h2>Согласование</h2>
           {% if approval %}
             <p class="card__subtitle">Статус согласования: {{ approval_status_labels.get(approval.status, approval.status) }}</p>
@@ -71,6 +98,31 @@
                   </div>
                 </div>
               {% endfor %}
+            </div>
+            <div class="stack">
+              <h3>Комментарии к согласованию</h3>
+              {% if approval_comments %}
+                {% for comment in approval_comments %}
+                  <div class="card">
+                    <div class="card__body">
+                      <div>{{ comment.content }}</div>
+                      <div class="text-muted">{{ comment.created_at.strftime("%d.%m.%Y %H:%M") }}</div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p>Комментариев к согласованию пока нет.</p>
+              {% endif %}
+              <form class="form" method="post" action="/comments">
+                <input type="hidden" name="approval_id" value="{{ approval.id }}">
+                <label class="form__label">
+                  Добавить комментарий
+                  <textarea name="content" rows="3" required></textarea>
+                </label>
+                <div class="form__actions">
+                  <button type="submit" class="button button--primary">Отправить</button>
+                </div>
+              </form>
             </div>
           {% else %}
             <p>Согласование не начато.</p>
