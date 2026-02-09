@@ -23,7 +23,10 @@ class DocumentMetricService(BaseService):
             document = await self.documents.get_document(document_id)
             if not document or document.is_archived:
                 return None
-            if document.status == DocumentStatus.APPROVED.value:
+            if document.status not in {
+                DocumentStatus.DRAFT.value,
+                DocumentStatus.REVISION_REQUIRED.value,
+            }:
                 return None
             return await self.metrics.create_metric(document_id=document_id, name=name, value=value, unit=unit)
 
@@ -35,7 +38,10 @@ class DocumentMetricService(BaseService):
             document = await self.documents.get_document(document_id)
             if not document or document.is_archived:
                 return None
-            if document.status == DocumentStatus.APPROVED.value:
+            if document.status not in {
+                DocumentStatus.DRAFT.value,
+                DocumentStatus.REVISION_REQUIRED.value,
+            }:
                 return None
             metric = await self.metrics.get_metric(metric_id)
             if not metric or metric.document_id != document_id:
@@ -48,7 +54,10 @@ class DocumentMetricService(BaseService):
             document = await self.documents.get_document(document_id)
             if not document or document.is_archived:
                 return False
-            if document.status == DocumentStatus.APPROVED.value:
+            if document.status not in {
+                DocumentStatus.DRAFT.value,
+                DocumentStatus.REVISION_REQUIRED.value,
+            }:
                 return False
             metric = await self.metrics.get_metric(metric_id)
             if not metric or metric.document_id != document_id:

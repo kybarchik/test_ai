@@ -59,6 +59,31 @@ async def reject_step(
     return response
 
 
+@router.post("/{approval_id}/steps/{step_id}/revision")
+async def request_revision(
+    request: Request,
+    approval_id: int,
+    step_id: int,
+    reason: str = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> RedirectResponse:
+    """Request revision for an approval step and redirect."""
+    service = ApprovalService(session)
+    step = await service.request_revision_step(step_id, user["id"], reason)
+    response = RedirectResponse(url="/documents", status_code=302)
+    if not step or step.approval_id != approval_id:
+        set_flash(response, "Не удалось отправить на доработку", "error")
+        return response
+    document_id = step.approval.document_id if step.approval else None
+    response = RedirectResponse(
+        url=f"/documents/{document_id}" if document_id else "/documents",
+        status_code=302,
+    )
+    set_flash(response, "Шаг отправлен на доработку", "success")
+    return response
+
+
 @router.get("/{approval_id}/comments")
 async def list_approval_comments(
     approval_id: int,

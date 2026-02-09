@@ -3,7 +3,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.domain.enums import ApprovalStepStatus
 from app.domain.models.approval import Approval, ApprovalStep
+from app.domain.models.document import Document
 from app.repositories.base import BaseRepository
 
 
@@ -92,4 +94,27 @@ class ApprovalRepository(BaseRepository):
             return list(result.scalars().all())
         except SQLAlchemyError:
             self.logger.exception("Failed to list approval steps", extra={"approval_id": approval_id})
+            raise
+
+    async def list_documents_for_approver(self, approver_id: int) -> list[Document]:
+        """List documents waiting for approver action."""
+        try:
+            result = await self.session.execute(
+                select(Document)
+                .join(Approval, Approval.document_id == Document.id)
+                .join(ApprovalStep, ApprovalStep.approval_id == Approval.id)
+                .where(
+                    Document.is_archived.is_(False),
+                    ApprovalStep.approver_id == approver_id,
+                    ApprovalStep.status == ApprovalStepStatus.PENDING.value,
+                )
+                .order_by(Document.created_at.desc())
+                .distinct()
+            )
+            return list(result.scalars().all())
+        except SQLAlchemyError:
+            self.logger.exception(
+                "Failed to list documents for approver",
+                extra={"approver_id": approver_id},
+            )
             raise

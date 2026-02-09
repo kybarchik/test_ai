@@ -67,7 +67,21 @@ class ApprovalService(BaseService):
             return step
 
     async def reject_step(self, step_id: int, user_id: int, reason: str):
-        """Reject a single step with reason."""
+        """Reject a single step with reason and cancel the document."""
+        return await self._reject_step(step_id, user_id, reason, DocumentStatus.CANCELED)
+
+    async def request_revision_step(self, step_id: int, user_id: int, reason: str):
+        """Reject a step and request revision."""
+        return await self._reject_step(step_id, user_id, reason, DocumentStatus.REVISION_REQUIRED)
+
+    async def _reject_step(
+        self,
+        step_id: int,
+        user_id: int,
+        reason: str,
+        document_target: DocumentStatus,
+    ):
+        """Reject a single step with reason and update document status."""
         if not reason:
             return None
         async with self.session.begin():
@@ -81,7 +95,21 @@ class ApprovalService(BaseService):
                 return None
             step.status = ApprovalStepStatus.REJECTED.value
             step.rejection_reason = reason
-            await self.recalc_approval_status(step.approval_id)
+            approval = step.approval or await self.repository.get_approval(step.approval_id)
+            if not approval:
+                return step
+            approval_status = ApprovalStatus(approval.status)
+            if can_transition_approval_status(approval_status, ApprovalStatus.REJECTED):
+                approval.status = ApprovalStatus.REJECTED.value
+            document = await self.documents.get_document(approval.document_id)
+            if not document or document.is_archived:
+                return step
+            document_status = DocumentStatus(document.status)
+            if (
+                document_target.value != document.status
+                and can_transition_document_status(document_status, document_target)
+            ):
+                document.status = document_target.value
             return step
 
     async def recalc_approval_status(self, approval_id: int):
@@ -92,6 +120,8 @@ class ApprovalService(BaseService):
         document = await self.documents.get_document(approval.document_id)
         if not document:
             return None
+        if document.status == DocumentStatus.CANCELED.value:
+            return approval
         steps = approval.steps
         if any(step.status == ApprovalStepStatus.REJECTED.value for step in steps):
             target_status = ApprovalStatus.REJECTED
@@ -122,3 +152,7 @@ class ApprovalService(BaseService):
             return None, []
         steps = approval.steps
         return approval, steps
+
+    async def list_pending_documents(self, approver_id: int):
+        """List documents awaiting approver action."""
+        return await self.repository.list_documents_for_approver(approver_id)

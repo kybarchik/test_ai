@@ -24,11 +24,25 @@ async def list_documents(
 ) -> HTMLResponse:
     """Render the list of documents."""
     service = DocumentService(session)
+    approval_service = ApprovalService(session)
     documents = await service.list_documents()
+    pending_documents = await approval_service.list_pending_documents(user["id"])
+    status_labels = {
+        DocumentStatus.DRAFT.value: "Черновик",
+        DocumentStatus.APPROVAL.value: "Согласование",
+        DocumentStatus.REVISION_REQUIRED.value: "Требует доработки",
+        DocumentStatus.CANCELED.value: "Отменено",
+        DocumentStatus.APPROVED.value: "Согласовано",
+    }
     return render_template(
         request,
         "documents/list.html",
-        {"user": user, "documents": documents},
+        {
+            "user": user,
+            "documents": documents,
+            "pending_documents": pending_documents,
+            "status_labels": status_labels,
+        },
     )
 
 
@@ -91,6 +105,15 @@ async def get_document(
         ApprovalStepStatus.APPROVED.value: "Согласовано",
         ApprovalStepStatus.REJECTED.value: "Отклонено",
     }
+    current_step = None
+    current_step_index = None
+    if steps:
+        pending_step = next(
+            (step for step in steps if step.status == ApprovalStepStatus.PENDING.value),
+            None,
+        )
+        current_step = pending_step or steps[-1]
+        current_step_index = steps.index(current_step) + 1
     return render_template(
         request,
         "documents/detail.html",
@@ -106,6 +129,8 @@ async def get_document(
             "status_labels": status_labels,
             "approval_status_labels": approval_status_labels,
             "step_status_labels": step_status_labels,
+            "current_step": current_step,
+            "current_step_index": current_step_index,
         },
     )
 
@@ -161,6 +186,24 @@ async def archive_document(
     if not document:
         return JSONResponse({"detail": "Документ не найден"}, status_code=404)
     return JSONResponse({"redirect_url": "/documents"})
+
+
+@router.post("/{document_id}/restore")
+async def restore_document(
+    request: Request,
+    document_id: int,
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> RedirectResponse:
+    """Restore a canceled document back to draft."""
+    service = DocumentService(session)
+    document = await service.restore_from_canceled(document_id)
+    response = RedirectResponse(url=f"/documents/{document_id}", status_code=302)
+    if not document:
+        set_flash(response, "Не удалось вернуть документ в черновик", "error")
+        return response
+    set_flash(response, "Документ возвращен в черновик", "success")
+    return response
 
 
 @router.get("/{document_id}/comments")

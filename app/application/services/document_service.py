@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.approval_rules import can_transition_document_status
 from app.domain.enums import DocumentStatus
 from app.infrastructure.repositories.document_repository import DocumentRepository
 from app.schemas.document import DocumentCreate, DocumentUpdate
@@ -32,7 +33,10 @@ class DocumentService(BaseService):
                 return None
             if document.is_archived:
                 return None
-            if document.status != DocumentStatus.DRAFT.value:
+            if document.status not in {
+                DocumentStatus.DRAFT.value,
+                DocumentStatus.REVISION_REQUIRED.value,
+            }:
                 return None
             return await self.repository.update_document(
                 document=document,
@@ -62,3 +66,19 @@ class DocumentService(BaseService):
             if document.is_archived:
                 return document
             return await self.repository.archive_document(document)
+
+    async def restore_from_canceled(self, document_id: int):
+        """Restore a canceled document back to draft."""
+        async with self.session.begin():
+            document = await self.repository.get_document(document_id=document_id)
+            if not document:
+                return None
+            if document.is_archived:
+                return None
+            if document.status != DocumentStatus.CANCELED.value:
+                return None
+            current_status = DocumentStatus(document.status)
+            if not can_transition_document_status(current_status, DocumentStatus.DRAFT):
+                return None
+            document.status = DocumentStatus.DRAFT.value
+            return document
