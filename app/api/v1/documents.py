@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.approval_service import ApprovalService
 from app.application.services.comment_service import CommentService
+from app.application.services.document_metric_service import DocumentMetricService
 from app.application.services.document_service import DocumentService
 from app.core.dependencies import get_current_user, get_db_session
 from app.core.flash import set_flash
@@ -58,6 +59,7 @@ async def get_document(
     service = DocumentService(session)
     approval_service = ApprovalService(session)
     comment_service = CommentService(session)
+    metric_service = DocumentMetricService(session)
     document = await service.get_document(document_id)
     if not document:
         return render_template(
@@ -68,6 +70,7 @@ async def get_document(
     approval, steps = await approval_service.get_approval_with_steps(document.id)
     document_comments = await comment_service.list_for_document(document.id)
     approval_comments = await comment_service.list_for_approval(approval.id) if approval else []
+    metrics = await metric_service.list_metrics_for_document(document.id)
     status_labels = {
         DocumentStatus.DRAFT.value: "Черновик",
         DocumentStatus.APPROVAL.value: "Согласование",
@@ -95,6 +98,7 @@ async def get_document(
             "approval_steps": steps,
             "document_comments": document_comments,
             "approval_comments": approval_comments,
+            "metrics": metrics,
             "status_labels": status_labels,
             "approval_status_labels": approval_status_labels,
             "step_status_labels": step_status_labels,
@@ -175,3 +179,65 @@ async def list_document_comments(
         for comment in comments
     ]
     return JSONResponse(payload)
+
+
+@router.post("/{document_id}/metrics")
+async def add_document_metric(
+    request: Request,
+    document_id: int,
+    name: str = Form(...),
+    value: str = Form(...),
+    unit: str = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> RedirectResponse:
+    """Add a metric to a document."""
+    service = DocumentMetricService(session)
+    metric = await service.add_metric(document_id=document_id, name=name, value=value, unit=unit)
+    response = RedirectResponse(url=f"/documents/{document_id}", status_code=302)
+    if not metric:
+        set_flash(response, "Не удалось добавить метрику", "error")
+        return response
+    set_flash(response, "Метрика добавлена", "success")
+    return response
+
+
+@router.put("/{document_id}/metrics/{metric_id}")
+async def update_document_metric(
+    request: Request,
+    document_id: int,
+    metric_id: int,
+    name: str = Form(...),
+    value: str = Form(...),
+    unit: str = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> JSONResponse:
+    """Update a metric in a document."""
+    service = DocumentMetricService(session)
+    metric = await service.update_metric(
+        document_id=document_id,
+        metric_id=metric_id,
+        name=name,
+        value=value,
+        unit=unit,
+    )
+    if not metric:
+        return JSONResponse({"detail": "Не удалось обновить метрику"}, status_code=400)
+    return JSONResponse({"redirect_url": f"/documents/{document_id}"})
+
+
+@router.delete("/{document_id}/metrics/{metric_id}")
+async def delete_document_metric(
+    request: Request,
+    document_id: int,
+    metric_id: int,
+    session: AsyncSession = Depends(get_db_session),
+    user: dict = Depends(get_current_user),
+) -> JSONResponse:
+    """Delete a metric from a document."""
+    service = DocumentMetricService(session)
+    removed = await service.delete_metric(document_id=document_id, metric_id=metric_id)
+    if not removed:
+        return JSONResponse({"detail": "Не удалось удалить метрику"}, status_code=400)
+    return JSONResponse({"redirect_url": f"/documents/{document_id}"})
